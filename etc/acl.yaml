@@ -1,0 +1,21 @@
+test:
+  default: read write
+  group moderator: master
+  
+test/name:
+  user test, puck: deny write
+  group moderator: d
+  default: deny all
+  
+test/name/space:
+  group admin: allow rwd
+  group moderator: allow rwm, deny delete read
+  user 2: allow r
+  user 3: deny
+  user 4: allow none
+  owner: allow rwd
+#  default: allow r
+
+  
+  
+
