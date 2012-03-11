@@ -40,7 +40,7 @@ class Acl {
     }
   }
 
-  public static function createTarget($user, (array)$groups) {
+  public static function createTarget($user, $groups = array()) {
   	return new Target($user, $groups);
   }  
 
