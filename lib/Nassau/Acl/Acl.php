@@ -39,83 +39,12 @@ class Acl {
       $this->_aclTable[$subject] = $ruleset;
     }
   }
-  private function parseRule($txt) {
-    $stop = array ('allow', 'deny');
-    $re = sprintf('/,?\s*\b(%s)\b\s*/', implode('|', $stop));
 
-    $rules = Array ();
+  public static function createTarget($user, (array)$groups) {
+  	return new Target($user, $groups);
+  }  
 
-    $txt = sprintf('%s %s', strtolower($txt), end($stop));
-    $data = preg_split($re, $txt, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-
-    $key = reset($stop);
-    $buff = array();
-    foreach ($data as $token):
-      if (in_array($token, $stop)):
-        if (sizeof($buff)) $rules[$key] = array_key_exists($key, $rules)
-          ? array_merge($rules[$key], $buff)
-          : $buff;
-          
-        $key  = $token;
-        $buff = array(-1 => 'all');
-      else:
-        unset($buff[-1]); // default
-        $buff = array_merge($buff, explode(' ', $token));
-      endif;
-
-    endforeach;
-    
-    $ret = array ();
-    foreach ($rules as $key => $val) {
-      $key = ($key == reset($stop)) ? Rule::MODE_GRANT : Rule::MODE_REVOKE;
-      $ret[$key] = $this->parsePerms($val);    
-    }
-    return $ret;
-  }
-  public function parsePerms($val) {
-    $bitmask = 0x00;
-    
-    $val = explode(',', implode(',', $val));
-    while ($str = array_shift($val)) switch (strtolower($str)):
-    case 'read': case 'r': case 'usage':
-      $bitmask |= Rule::PERM_READ;
-      break;
-      
-    case 'write': case 'w':
-      $bitmask |= Rule::PERM_WRITE;
-      break;
-
-    case 'delete': case 'd':
-      $bitmask |= Rule::PERM_DELETE;
-      break;
-      
-    case 'undelete': case 'u':
-      $bitmask |= Rule::PERM_UNDELETE;
-      break;
-      
-    case 'operate': case 'operator': case 'o': case 'grant': case 'g':
-      $bitmask |= Rule::PERM_OPERATE;
-      break;
-      
-    case 'master': case 'm': case 'root': case 'admin':
-      $bitmask |= Rule::PERM_MASTER;
-      break;
-    
-    case 'all': case 'a':
-      $bitmask |= Rule::PERM_ALL;
-      break;
-
-    default:
-      if (strlen($str) > 1) {
-        $val = array_merge($val, explode(' ', wordwrap($str, 1, ' ', true)));
-      }
-      
-    endswitch;
-    
-    return $bitmask;
-  }
-  
-  public function hasAccess(Target $target, $subject, $mask = Rule::PERM_READ, $mode = null) {
+  public function getAccessLevel(Target $target, $subject, $mode = null) {
     $mode = is_null($mode) ? $this->_mode : $mode;
     
     $options = Array (
@@ -150,6 +79,11 @@ class Acl {
       }
     }
     
+  	return $perm;  
+  }
+    
+  public function hasAccess(Target $target, $subject, $mask = Rule::PERM_READ, $mode = null) {
+  	$perm = $this->getAccessLevel($target, $subject, $mode);
     return ($perm & $mask) == $mask;
   }
 }
