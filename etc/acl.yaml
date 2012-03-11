@@ -1,0 +1,27 @@
+api:
+  admin: allow all
+  dev: allow r
+
+# 
+# if user has access to whole database, or just current game?
+# 
+api/manage:
+  dev: deny
+
+api/noun/themes:
+  dev: deny
+
+api/noun/users:
+  dev: allow rwd
+
+# blokujemy dostep. tu moze sie dostac jedynie przez /init
+api/settings:
+  dev: deny
+api/games:
+  dev: deny
+api/applications:
+  dev: deny
+	
+#
+# If hasnt got +m, must filter by second key
+#
