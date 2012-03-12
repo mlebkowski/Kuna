@@ -17,6 +17,10 @@ abstract class Manager {
 		return $this->query(array('id' => $id))->fetch();
 	}
 	public function getByParams($params) {
+		$keys = $this->getAllowedFilterKeys();
+		if ($keys) {
+			$params = array_intersect_key($params, $keys);
+		}
 		return $this->query($params)->fetchAll();
 	}
 	public function query($where = null, $limit = null, $order = null) {
@@ -27,8 +31,8 @@ abstract class Manager {
 		if ($this->primaryKey) {
 			$where['id'] = $this->primaryKey;
 		}
+		$where = array_intersect_key($where, $this->getKeys());
 		
-		// co z kluczami, po ktorych nie mozna filtrowac?
 		foreach ($where as $col => &$value) {
 			$value = is_array($value) 
 				? sprintf('`%s` in (%s)', $col, implode(',', $this->db->quote($value)))
@@ -43,20 +47,28 @@ abstract class Manager {
 			$order ? implode(', ', array_map(array ($this->db, 'quote'), $order)) : 'id'
 		);
 		$q = $this->db->query($sql);
-		$q -> setFetchMode(\PDO::FETCH_CLASS, $this->getModelClass());
+		$q -> setFetchMode(\PDO::FETCH_CLASS, $this->getModelClass(), array($this));
 		
 		return $q;
 	}
+	public function getClass() {
+		list ($class) = array_reverse(explode('\\', get_class($this))); 
+		return $class;	
+	}
 	public function getTableName() {
-		return trim(strtolower(preg_replace('/[A-Z]/g', function ($x) {
+		$class = $this->getClass();
+		return trim(strtolower(preg_replace_callback('/[A-Z]/', function ($x) {
 			return '_' . strtolower($x[0]);
-		}, __CLASS__)), '_');
+		}, $class)), '_');
 	}
 	public function getModelClass() {
-		return '\\Kuna\\Model\\' . get_class($this);
+		return '\\Kuna\\Model\\' . $this->getClass();
 	}
 	public function getType() {
 		return $this->getTableName();
+	}
+	public function setPrimaryKey($value) {
+		$this->primaryKey = $value;
 	}
 	public function getPrimaryKeyName() {
 		return $this->primaryKeyName;

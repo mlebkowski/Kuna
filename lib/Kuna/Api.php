@@ -25,16 +25,17 @@ class Api {
 			case 'games':
 				//game_id
 			
-				$name = preg_replace_callback('#/.#g', function ($m) {
-					return ucfirst(substr($m[0], 1)); 
+				$name = preg_replace_callback('#s/.#', function ($m) {
+					return ucfirst(substr($m[0], -1)); 
 				} , $name);
-				$name = "Manager/" . ucfirst($name);
-				$manager = new $name($db);
+				$name = substr($name, 0, -1);
+				$name = "\\Kuna\\Manager\\" . ucfirst($name);
+				$manager = new $name($this->db);
 				return $manager;
 		}
 	}
 	public function __get($name) {
-		$name = preg_replace_callback('/[A-Z]/g', function ($x) {
+		$name = preg_replace_callback('/[A-Z]/', function ($x) {
 			return '/' . strtolower($x);
 		}, $name);
 		return $this->getManager($name);

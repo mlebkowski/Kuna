@@ -20,28 +20,30 @@ class Controller {
 		$this->request = $request;
 
 		$limits = array ();
-		$rest = $request -> getBaseUrl();
+//		$rest = $request -> getBaseUrl();
+		list ($rest) = explode('?', $request->getRequestUri());
+		
 		$rest = ltrim($rest, '/');
+
+		$params = $this->getParams($request);
+		$params->set('rest', $rest);
+		$params->set('method', $request->getMethod());
+
 
 		$id = null;
 		if (preg_match('#(.*)/+(\d+)$#', $rest, $m)) {
 			list (, $rest, $id) = $m;
 		}
-		$rest = preg_replace_callback('#([a-z])/(\d+)', function ($x) use ($limits) {
-			$limit = $m[1];
-			$limits[$limit] = $m[2];
+		$rest = preg_replace_callback('#([a-z])/(\d+)#', function ($x) use ($limits) {
+			$limit = $x[1];
+			$limits[$limit] = $x[2];
 			return $limit;
 		}, $rest);
 		
-		
-		$params = $this->getParams($request);
-		$params['rest']		= $rest;
-		$params['method']	= $request->getMethod();
-
   	$context = $this->authManager->validate($params);
     if (false === $context) switch ($this->authManager->getError()):
     case AuthManager::ERR_MISSING_PARAM:
-    	return $this->preapareResponse('Missing some of the required params: developer_id, sig, nonce', 400);
+    	return $this->prepareResponse('Missing some of the required params: developer_id, sig, nonce', 400);
     case AuthManager::ERR_EXPIRED_NONCE:
     	return $this->prepareResponse('Nonce has expired', 408);
     case AuthManager::ERR_DEVELOPER_SIG:
@@ -57,11 +59,11 @@ class Controller {
 		$user = Acl::createTarget($context->getUser(), $context->getGroups());
     $access = $this->acl->getAccessLevel($user, 'api/noun/' . $rest);
     
-    if (Rule::PREM_NONE == $access) {
+    if (Rule::PERM_NONE == $access) {
     	return $this->prepareResponse('Forbidden', 403);
     }
     
-    $reqAccess = Rank::PERM_READ;
+    $reqAccess = Rule::PERM_READ;
     switch ($request->getMethod()):
     case 'POST':
     case 'PUT';
@@ -91,7 +93,6 @@ class Controller {
 			} elseif (!$app) {
 				return $this->prepareResponse('No application registered to this developer_id/domain', 404);
 			}
-			
 			list ($app) = $app;
 			$game = $api->games->getCurrentGame($app->id);
 
@@ -132,7 +133,7 @@ class Controller {
 			
 		case 'GET':
 		case 'HEAD':
-			$object = $manager->getByParams($params);
+			$object = $manager->getByParams($params->all());
 			return $this->prepareResponse($object, 200);
 			
 		case 'DELETE':
@@ -149,21 +150,27 @@ class Controller {
 
 	}
 	private function getParams (Request $request) {
-		//... 
+		$params = new \Symfony\Component\HttpFoundation\ParameterBag(
+			array_merge($request->query->all(), $request->request->all())
+		);
+		return $params;
 	}
 	private function prepareResponse($content, $code = 200) {
 		$code = (int)$code;
-		if ($this->request) switch ($this->request->headers->get('Accept')) {
-		case 'text/plain':
-			break;
+		$content = is_array($content) ? $content : array('message' => $content);
+		list ($ct) = $this->request->getAcceptableContentTypes();
+		if ($this->request) switch ($this->request->getFormat($ct)) {
+//		case 'txt':
+//			$content = print_r($content, true);
+//			break;
 		default:
-			$content = is_array($content) ? $content : array('message' => $content);
 			$content = json_encode($content);
+			$ct = 'application/json';
 			// links?
 			// created?
 			// ... TODO
 		}
-		$response = new Response($content, $code, Array('Content-type' => 'application/json'));
+		$response = new Response($content, $code, Array('Content-type' => $ct));
 		return $response;
 	}
 }

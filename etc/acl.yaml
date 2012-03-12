@@ -15,13 +15,13 @@ api/noun/users:
   dev: allow rwd
 
 # blokujemy dostep. tu moze sie dostac jedynie przez /init
-api/settings:
+api/noun/settings:
   dev: deny
-api/games:
+api/noun/games:
   dev: deny
-api/applications:
+api/noun/applications:
   dev: deny
-	
+
 #
 # If hasnt got +m, must filter by second key
 #

@@ -14,12 +14,12 @@ class AuthManager {
 		$this->db = $db;
 	}
 	
-  public function validateMessage($params) {
-  	$dev_id = $params['developer_id'];
-  	$sig = $params['sig'];
-  	$nonce = $params['nonce'];
+  public function validate($params) {
+  	$dev_id = $params->get('developer_id');
+  	$sig = $params->get('sig');
+  	$nonce = $params->get('nonce');
   	
-  	unset($params['sig']);
+  	$params->remove('sig');
   	
   	$this->lastError = null;
   	
@@ -32,8 +32,9 @@ class AuthManager {
   		return false;
   	}
   	
-  	ksort($params);
-  	$params = http_build_query($params);
+  	$aparams = $params->all();
+  	ksort($aparams);
+  	$aparams = http_build_query($aparams);
   	
   	$secret = $this->getDeveloperSecret($dev_id);
   	if (!$secret) {
@@ -41,7 +42,9 @@ class AuthManager {
   		return false;
   	}
   	
-  	return (sha1($params . $secret) == $sig) 
+  	$params->remove('nonce');
+  	
+  	return (sha1($aparams . $secret) == $sig) 
   		? new Context($secret, $params)
   		: ($this->lastError = self::ERR_BAD_SIGNATURE) && false;
   }
@@ -51,6 +54,6 @@ class AuthManager {
   
   private function getDeveloperSecret($id) {
   	return $this->db->query(sprintf('SELECT secret FROM developers WHERE id = %d',
-  		(int)$id), PDO::FETCH_COLUMN, 0)->fetch();
+  		(int)$id), \PDO::FETCH_COLUMN, 0)->fetch();
   }
 }

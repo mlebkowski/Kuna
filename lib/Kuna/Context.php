@@ -8,11 +8,11 @@ class Context {
 		$this->secret = $secret;
 	}
 	public function getUser() {
-		return $this->params['developer_id'];
+		return $this->params->get('developer_id');
 	}
 	public function getGroups() {
 		return array(
-			substr($this->secret, 1, 3)
+			'@'. substr($this->secret, 1, 3)
 		);
 	}
 }
